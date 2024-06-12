@@ -1,59 +1,103 @@
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/strand.hpp>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <vector>
+import sys
+from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QMessageBox,
+                             QVBoxLayout, QLineEdit, QLabel, QComboBox, QCheckBox,
+                             QSlider, QHBoxLayout)
+from PyQt5.QtCore import Qt
 
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace net = boost::asio;
-using tcp = net::ip::tcp;
+class EnhancedApp(QWidget):
+    def __init__(self):
+        super().__init__()
 
-void handle_request(beast::string_view doc_root, http::request<http::string_body>&& req, http::response<http::string_body>&& res) {
-    res.version(req.version());
-    res.set(http::field::server, "Beast");
-    res.set(http::field::content_type, "text/html");
-    res.keep_alive(req.keep_alive());
-    res.body() = "Hello, World!";
-    res.prepare_payload();
-}
+        # Initialize the user interface
+        self.initUI()
 
-void session(tcp::socket socket) {
-    bool close = false;
-    beast::error_code ec;
-    beast::flat_buffer buffer;
+    def initUI(self):
+        # Set the main window properties
+        self.setWindowTitle('Enhanced Qt Application')
+        self.setGeometry(100, 100, 400, 300)
 
-    http::request<http::string_body> req;
-    http::read(socket, buffer, req, ec);
+        # Create the main vertical layout
+        main_layout = QVBoxLayout()
 
-    http::response<http::string_body> res{http::status::ok, req.version()};
-    handle_request(".", std::move(req), std::move(res));
+        # Create a horizontal layout for input elements
+        input_layout = QHBoxLayout()
 
-    http::write(socket, res, ec);
-    socket.shutdown(tcp::socket::shutdown_send, ec);
-}
+        # Create a QLineEdit widget for text input
+        self.text_input = QLineEdit(self)
+        self.text_input.setPlaceholderText('Enter some text')
+        input_layout.addWidget(self.text_input)
 
-int main() {
-    try {
-        auto const address = net::ip::make_address("0.0.0.0");
-        unsigned short port = 8080;
+        # Create a QComboBox widget for selecting options
+        self.combo_box = QComboBox(self)
+        self.combo_box.addItems(['Option 1', 'Option 2', 'Option 3'])
+        input_layout.addWidget(self.combo_box)
 
-        net::io_context ioc{1};
+        # Add the input layout to the main layout
+        main_layout.addLayout(input_layout)
 
-        tcp::acceptor acceptor{ioc, {address, port}};
-        for (;;) {
-            tcp::socket socket{ioc};
-            acceptor.accept(socket);
-            std::thread{std::bind(&session, std::move(socket))}.detach();
-        }
-    }
-    catch (std::exception const& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-}
+        # Create a QCheckBox widget
+        self.checkbox = QCheckBox('Check me', self)
+        main_layout.addWidget(self.checkbox)
+
+        # Create a QSlider widget for selecting a value
+        self.slider = QSlider(Qt.Horizontal, self)
+        self.slider.setRange(0, 100)
+        self.slider.setValue(50)
+        self.slider.valueChanged.connect(self.updateSliderLabel)  # Connect the slider value change to a method
+        main_layout.addWidget(self.slider)
+
+        # Create a QLabel widget to display the slider value
+        self.slider_label = QLabel(f'Slider Value: {self.slider.value()}', self)
+        main_layout.addWidget(self.slider_label)
+
+        # Create a QPushButton widget
+        self.button = QPushButton('Show Message', self)
+        self.button.clicked.connect(self.showMessage)  # Connect the button click to a method
+        main_layout.addWidget(self.button)
+
+        # Create a QLabel widget to display the result
+        self.result_label = QLabel('Result will be displayed here', self)
+        main_layout.addWidget(self.result_label)
+
+        # Set the main layout for the window
+        self.setLayout(main_layout)
+
+    def showMessage(self):
+        """
+        Method to display a message box with the current state of the input widgets
+        and update the result label with the same information.
+        """
+        text = self.text_input.text()  # Get the text from the QLineEdit
+        combo_text = self.combo_box.currentText()  # Get the current text from the QComboBox
+        checkbox_state = 'Checked' if self.checkbox.isChecked() else 'Unchecked'  # Check if the QCheckBox is checked
+        slider_value = self.slider.value()  # Get the current value of the QSlider
+
+        # Create a message string with the current input values
+        message = (f'Input Text: {text}\n'
+                   f'Selected Option: {combo_text}\n'
+                   f'Checkbox is {checkbox_state}\n'
+                   f'Slider Value: {slider_value}')
+        
+        # Display the message box
+        QMessageBox.information(self, 'Message', message)
+
+        # Update the result label with the current input values
+        self.result_label.setText(f'Text: {text}, Option: {combo_text}, Checkbox: {checkbox_state}, Slider: {slider_value}')
+
+    def updateSliderLabel(self, value):
+        """
+        Method to update the slider label with the current slider value.
+        """
+        self.slider_label.setText(f'Slider Value: {value}')
+
+def main():
+    """
+    The main function to create and display the application window.
+    """
+    app = QApplication(sys.argv)  # Create the application object
+    ex = EnhancedApp()  # Create an instance of the EnhancedApp class
+    ex.show()  # Show the application window
+    sys.exit(app.exec_())  # Start the event loop
+
+if __name__ == '__main__':
+    main()
